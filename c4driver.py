@@ -48,6 +48,11 @@ import os
 import re
 import shutil
 import sys
+try:
+    import wget
+except ImportError as e:    
+    print("wget Library not installed.\nType 'python3 -m pip install wqet' and try again.")
+    quit()
 import zipfile 
 from datetime import datetime
 from pathlib import Path
@@ -122,6 +127,8 @@ def main() -> None:
     current_time = now.strftime("%m/%d/%Y %H:%M")
     LOGGING.info("Started running script at: " + current_time + "\n")
 
+    filename = wget.download("http://drivers.control4.com/experience-button-scenario.c4z", bar=None, out=orig_driver_name)
+    
     if not(os.path.exists(orig_driver_name)) :
         sys.exit("Terminating as there is no file called experience-button-scenario.c4z in current directory.")
 
@@ -152,6 +159,7 @@ def main() -> None:
     shutil.make_archive(drivername, "zip", os.path.join(os.getcwd(), outdir))  #Make the zip file, have to use zip as an extension
     shutil.rmtree(outdir) #remove the folder for the resized image files
     shutil.move(drivername + ".zip", final_c4z_image_file_name) #Change extension to c4z
+    os.remove(orig_driver_name)
     LOGGING.info(final_c4z_image_file_name + " driver file created.")
 
 
