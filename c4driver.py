@@ -89,7 +89,7 @@ def parse_xml_file(file_name: str, drivername: str) -> None: #probably can cut t
     # fin = open(file_name, "rt", errors="ignore")
     #data = fin.read() #read file into data variable
     data = open(file_name, 'rt', encoding='utf8', errors='ignore').read()
-    data = bytes(data, "utf-8").decode("utf-8", "ignore")
+    data = data.encode().decode("ascii", "ignore")
     data = data.replace(stext, rtext) #replaces the names of all of the icon files
     data = data.replace(stext2, rtext) #replaces the name of the driver
     data=re.sub(xml1, c, data, flags = re.DOTALL) #replaces the created date
@@ -158,4 +158,3 @@ def main() -> None:
 """ Main program execution starts here. """
 if __name__ == "__main__":
     main()
-    
