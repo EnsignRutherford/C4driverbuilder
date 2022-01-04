@@ -1,4 +1,17 @@
 @echo off
+rem Check for required packages and install if necessary
+python3 -m pip list > build.tmp
+findstr Pillow build.tmp 1>nul
+if errorlevel 1 (
+  echo. Installing Pillow Image Library
+  python3 -m pip install Pillow
+)
+findstr wget build.tmp 1>nul
+if errorlevel 1 (
+  echo. Installing wget Library
+  python3 -m pip install wget
+)
+del build.tmp
 if "%1"=="" goto have_0
 if "%2"=="" goto have_1
 goto end
