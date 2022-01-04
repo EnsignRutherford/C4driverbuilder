@@ -39,6 +39,11 @@ a selected icon.  This is the icon that will appear after you push the custom ex
 
 import glob
 import logging
+try:
+    import PIL
+except ImportError as e:    
+    print("Pillow Imaging Library not installed.\nType 'python3 -m pip install pillow' and try again.")
+    quit()
 import os
 import re
 import shutil
@@ -108,6 +113,7 @@ def main() -> None:
     orig_image_file = drivername + ".png" #This is the original image file which must be provided and it must be "drivername".png
     base_selected_file = drivername + "_selected.png" #This is the provided selected file that will be used, it is optional
     final_c4z_image_path = "uibutton_" + drivername
+    drivername = final_c4z_image_path
     final_c4z_image_file_name = final_c4z_image_path + ".c4z"
     final_c4z_file = final_c4z_image_path + ".c4z"
 
@@ -131,11 +137,11 @@ def main() -> None:
     make_image_files(base_selected_file,selectedimagepath)  #Make all of the selected files
 
     zipfile.ZipFile(orig_driver_name).extractall(path = outdir)  #extracts driver file to the path given
-    parse_xml_file(xml_file_name, final_c4z_image_path) #parses xml to change icon names for buttons and xml parameters - name, created and modified
+    parse_xml_file(xml_file_name, drivername) #parses xml to change icon names for buttons and xml parameters - name, created and modified
     oldiconpath=os.path.join(outdir, "www", "icons-old")
     shutil.rmtree(oldiconpath) #remove icons-old folder - no one knows why this folder exists - lazy coder?
-    shutil.move(os.path.join(image_path, "default_16.png"), os.path.join(outdir,"www","icons","device_sm.png")) #move the device small icon to the driver file
-    shutil.move(os.path.join(image_path, "default_32.png"), os.path.join(outdir,"www","icons","device_lg.png")) #move the device large icon to the driver file
+    shutil.move(os.path.join(image_path, "default_16.png"), os.path.join(outdir, "www", "icons", "device_sm.png")) #move the device small icon to the driver file
+    shutil.move(os.path.join(image_path, "default_32.png"), os.path.join(outdir, "www", "icons", "device_lg.png")) #move the device large icon to the driver file
     os.remove(os.path.join(image_path, "selected_16.png")) #These files weren't needed but it was easier to create them in a loop and then delete
     os.remove(os.path.join(image_path, "selected_32.png")) #These files weren't needed but it was easier to create them in a loop and then delete
     def_files = glob.glob(os.path.join(image_path, "default_*.png")) # This is a list of all of the default image files 
