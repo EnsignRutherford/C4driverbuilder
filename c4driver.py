@@ -38,12 +38,11 @@ a selected icon.  This is the icon that will appear after you push the custom ex
 
 
 """ Imports and dependencies """
-#import glob
 import logging
 try:
     import PIL
 except ImportError:
-    print("Pillow Library not installed.\nType 'python3 -m pip pillow' at the command prompt and try again.")
+    print("Pillow Library not installed.\nType 'python3 -m pip install pillow' at the command prompt and try again.")
     quit()
 import os
 import re
@@ -52,10 +51,15 @@ import sys
 try:
     import wget
 except ImportError:
-    print("wget Library not installed.\nType 'python3 -m pip wget' at the command prompt and try again.")
+    print("wget Library not installed.\nType 'python3 -m pip install wget' at the command prompt and try again.")
     quit()
 import zipfile 
 from datetime import datetime
+try:
+    from lxml import etree
+except ImportError:
+    print("lxml Library not installed.\nType 'python3 -m pip install lxml' at the command prompt and try again.")
+    quit()
 from pathlib import Path
 from PIL import Image
 
@@ -64,6 +68,7 @@ from PIL import Image
 DRIVER_FILE_EXTENSION = "c4z"
 DRIVER_XML_FILE = "driver.xml"
 EXPERIENCE_BUTTON_SCENARIO_DRIVER_URL = "http://drivers.control4.com/experience-button-scenario.c4z"
+EXPERIENCE_BUTTON_SCENARIO_NAME = "experience-button-scenario" 
 IMAGE_FILE_EXTENSION = "png"
 TEMPLATE_DRIVER_FILE = "experience-button-scenario.c4z"
 ZIP_FILE_EXTENSION = "zip"
@@ -101,35 +106,21 @@ def make_image_files(infile: str, outfileprefix: str) -> None:
   
 
 def process_xml_file(file_name: str, driver_name: str, driver_label: str, update_driver: bool) -> None: 
-    now = datetime.now()
-    current_time = now.strftime("%m/%d/%Y %H:%M")
+    current_time = datetime.now().strftime("%m/%d/%Y %H:%M")                                                        # for creation and last modified date
 
-    xml1 = "<created>.*</created>"                                                                                  # This is to change the created date with current date/time see https://stackoverflow.com/questions/16159969/replace-all-text-between-2-strings-python
-    xml2 = "<modified>.*</modified>"                                                                                # This is to change the modified date with current date/time
-    xml3 = "<version>(.*)</version>"                                                                                # This is to change the version of the driver for ease of updating within a Control4 project
-    c = "<created>" + current_time + "</created>"
-    m = "<modified>" + current_time + "</modified>"
-    
-    data = open(file_name, 'rt', encoding='utf8', errors='ignore').read()
-    data = data.encode().decode("ascii", "ignore")
+    tree = etree.parse(file_name)
     if (update_driver == False):
-        stext = "experience-button-scenario"                                                                        # driver name used for files
-        stext2 = "Scenario - Experience Button"                                                                     # driver name that is hard coded - replace 'Scenario' with the name of the image
-        stext3 = 'name="Scenario"'
-        rtext = driver_name
-        rtext2 = driver_label.title().replace('_', ' ') + " - Experience Button"
-        data = data.replace(stext, rtext)                                                                           # replaces the names of all of the icon files
-        data = data.replace(stext2, rtext2)                                                                         # replaces the name of the driver
-        data = data.replace(stext3, 'name="' + driver_label.title().replace('_', ' ') + '"')                        # replaces the name of the driver so it's default description in system explorer will be the name of the driver
-    data=re.sub(xml1, c, data, flags = re.DOTALL)                                                                   # replaces the created date
-    data=re.sub(xml2, m, data, flags = re.DOTALL)                                                                   # replaces the modified date
-    version_info = re.search(xml3, data).group(0)                                                                   # update the version
-    version = re.findall(xml3, version_info)[0]
-    new_version_info = '<version>{0}</version>'.format(int(version) + 1)
-    data = data.replace(version_info, new_version_info)
-    fin = open(file_name, "wt")                                                                                     # open xml file to write
-    fin.write(data)                                                                                                 # write updated xml file
-    fin.close()
+        tree.xpath("/devicedata/name")[0].text = driver_label.title().replace('_', ' ') + " - Experience Button"    # replaces the name of the driver so it's default description in system explorer will be the name of the driver
+        for image_directory in tree.xpath("/devicedata/capabilities/navigator_display_option/display_icons/Icon"):  # replaces the names of all of the icon files
+            image_directory.text = image_directory.text.replace(EXPERIENCE_BUTTON_SCENARIO_NAME, driver_name)
+        for image_state in tree.xpath("/devicedata/capabilities/navigator_display_option/display_icons/state"):
+            for image_directory in image_state.iter():
+                image_directory.text = image_directory.text.replace(EXPERIENCE_BUTTON_SCENARIO_NAME, driver_name)
+        tree.xpath("/devicedata/proxies/proxy")[0].attrib['name'] = driver_label.title().replace('_', ' ')          # replace the name of the proxy so it appears properly when first installed
+    tree.xpath("/devicedata/created")[0].text = current_time                                                        # replaces the created date
+    tree.xpath("/devicedata/modified")[0].text = current_time                                                       # replaces the modified
+    tree.xpath("/devicedata/version")[0].text = str(int(tree.xpath("/devicedata/version")[0].text) + 1)             # update the version
+    tree.write(file_name, pretty_print = True, xml_declaration = True, encoding = "utf-8")
 
 
 def main() -> None:
@@ -174,7 +165,7 @@ def main() -> None:
         update_driver = False
 
     if not(os.path.exists(base_selected_file)):                                                                    # Look to see if there is a selected file
-        base_selected_file=orig_image_file                                                                         # If there isn't then just use the default file
+        base_selected_file = orig_image_file                                                                       # If there isn't then just use the default file
         LOGGING.info("No selected image file so using the same image file for both default and selected")
         
     xml_file_name = os.path.join(outdir, DRIVER_XML_FILE)                                                          # This is the driver file with xml code - it will be slightly altered
@@ -187,17 +178,17 @@ def main() -> None:
 
     zipfile.ZipFile(orig_driver_name).extractall(path = outdir)                                                    # Extracts driver file to the path given
     process_xml_file(xml_file_name, driver_name, driver_label, update_driver)                                      # Processes xml to change icon names for buttons and xml parameters - name, created and modified
-    old_icon_path=os.path.join(outdir, "www", "icons-old")
+    old_icon_path = os.path.join(outdir, "www", "icons-old")
     if (os.path.exists(old_icon_path)):
         shutil.rmtree(old_icon_path)                                                                               # Remove icons-old folder if it exists - no one knows why this folder exists - lazy coder?
     shutil.move(os.path.join(image_path, "default_16.png"), os.path.join(outdir, "www", "icons", "device_sm.png")) # Move the device small icon to the driver file
     shutil.move(os.path.join(image_path, "default_32.png"), os.path.join(outdir, "www", "icons", "device_lg.png")) # Move the device large icon to the driver file
     os.remove(os.path.join(image_path, "selected_16.png"))                                                         # These files weren't needed but it was easier to create them in a loop and then delete
     os.remove(os.path.join(image_path, "selected_32.png"))                                                         # These files weren't needed but it was easier to create them in a loop and then delete
-    def_files = glob.glob(os.path.join(image_path, "default_*.png"))                                               # This is a list of all of the default image files 
-    sel_files = glob.glob(os.path.join(image_path, "selected*.png"))                                               # This is all of the selected image files
-    for file in def_files + sel_files:
-        shutil.copy(file,os.path.join(outdir, "www", "icons", "device"))                                           # Copy all of the icon files to the proper folder
+    
+    for file in Path(image_path).glob("*." + IMAGE_FILE_EXTENSION):
+        shutil.copy(file, os.path.join(outdir, "www", "icons", "device"))                                          # Copy all of the icon files to the proper folder
+        
     shutil.rmtree(image_path)                                                                                      # Remove the temporary folder for the resized image files
     shutil.make_archive(driver_name, ZIP_FILE_EXTENSION, os.path.join(os.getcwd(), outdir))                        # Make the zip file, have to use zip as an extension
     shutil.rmtree(outdir)                                                                                          # Remove the folder for the resized image files
