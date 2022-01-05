@@ -11,6 +11,11 @@ if errorlevel 1 (
   echo. Installing wget Library
   python3 -m pip install wget
 )
+findstr lxml build.tmp 1>nul
+if errorlevel 1 (
+  echo. Installing lxml Library
+  python3 -m pip install lxml
+)
 del build.tmp
 if "%1"=="" goto have_0
 if "%2"=="" goto have_1
