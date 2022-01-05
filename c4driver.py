@@ -10,9 +10,6 @@ Pre-requisites:  Python3, and an image file.  You must also have the packages 'P
 If you get an error saying ModuleNotFoundError: No module named 'PIL' then from the command line 
 type python3 -m pip install pillow
 
-I have tried this on Windows 10, Linux and Ubuntu on Win10 using SFU. I think it should work on a Mac as well.
-The driver can be downloaded from http://drivers.control4.com/experience-button-scenario.c4z
-
 You need at least one png image file that will be used for the new icon. If desired, you can also provide a second
 image file that is the selected version of this button. Let's assume the default icon image file is called stones.png. 
 Then you could also have an image file for the selected button which must be named stones_selected.png and it must be 
@@ -41,14 +38,22 @@ a selected icon.  This is the icon that will appear after you push the custom ex
 
 
 """ Imports and dependencies """
-import glob
+#import glob
 import logging
-import PIL
+try:
+    import PIL
+except ImportError:
+    print("Pillow Library not installed.\nType 'python3 -m pip pillow' at the command prompt and try again.")
+    quit()
 import os
 import re
 import shutil
 import sys
-import wget
+try:
+    import wget
+except ImportError:
+    print("wget Library not installed.\nType 'python3 -m pip wget' at the command prompt and try again.")
+    quit()
 import zipfile 
 from datetime import datetime
 from pathlib import Path
