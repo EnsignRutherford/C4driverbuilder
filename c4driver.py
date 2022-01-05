@@ -107,7 +107,6 @@ def make_image_files(infile: str, outfileprefix: str) -> None:
 
 def process_xml_file(file_name: str, driver_name: str, driver_label: str, update_driver: bool) -> None: 
     current_time = datetime.now().strftime("%m/%d/%Y %H:%M")                                                        # for creation and last modified date
-
     tree = etree.parse(file_name)
     if (update_driver == False):
         tree.xpath("/devicedata/name")[0].text = driver_label.title().replace('_', ' ') + " - Experience Button"    # replaces the name of the driver so it's default description in system explorer will be the name of the driver
@@ -140,15 +139,12 @@ def main() -> None:
     driver_name = final_c4z_image_path
     final_c4z_image_file_name = final_c4z_image_path + "." + DRIVER_FILE_EXTENSION
     final_c4z_file = final_c4z_image_path + "." + DRIVER_FILE_EXTENSION
-
     configure_logging(driver_name)
     LOGGING.info("Started script execution.")
-
     if (not os.path.exists(orig_image_file)):
         mesg = "No image file called '{0}' in current directory.  Aborting.".format(orig_image_file)
         LOGGING.error(mesg)
         sys.exit(mesg)
-
     if (os.path.exists(final_c4z_file)):
         orig_driver_name = final_c4z_file
         mesg = "Updating existing driver file {0}.".format(final_c4z_file)
@@ -163,19 +159,15 @@ def main() -> None:
         print(mesg)
         LOGGING.info(mesg)        
         update_driver = False
-
     if not(os.path.exists(base_selected_file)):                                                                    # Look to see if there is a selected file
         base_selected_file = orig_image_file                                                                       # If there isn't then just use the default file
         LOGGING.info("No selected image file so using the same image file for both default and selected")
-        
     xml_file_name = os.path.join(outdir, DRIVER_XML_FILE)                                                          # This is the driver file with xml code - it will be slightly altered
     Path(image_path).mkdir(parents = True, exist_ok = True)                                                        # Create the temporaty folder for the icon files
     default_image_path = os.path.join(image_path, "default")                                                       # Path name for selected icon images
     selected_image_path = os.path.join(image_path, "selected")                                                     # Path name for default icon images
-
     make_image_files(orig_image_file, default_image_path)                                                          # Make all of the default files
     make_image_files(base_selected_file, selected_image_path)                                                      # Make all of the selected files
-
     zipfile.ZipFile(orig_driver_name).extractall(path = outdir)                                                    # Extracts driver file to the path given
     process_xml_file(xml_file_name, driver_name, driver_label, update_driver)                                      # Processes xml to change icon names for buttons and xml parameters - name, created and modified
     old_icon_path = os.path.join(outdir, "www", "icons-old")
@@ -185,10 +177,8 @@ def main() -> None:
     shutil.move(os.path.join(image_path, "default_32.png"), os.path.join(outdir, "www", "icons", "device_lg.png")) # Move the device large icon to the driver file
     os.remove(os.path.join(image_path, "selected_16.png"))                                                         # These files weren't needed but it was easier to create them in a loop and then delete
     os.remove(os.path.join(image_path, "selected_32.png"))                                                         # These files weren't needed but it was easier to create them in a loop and then delete
-    
     for file in Path(image_path).glob("*." + IMAGE_FILE_EXTENSION):
         shutil.copy(file, os.path.join(outdir, "www", "icons", "device"))                                          # Copy all of the icon files to the proper folder
-        
     shutil.rmtree(image_path)                                                                                      # Remove the temporary folder for the resized image files
     shutil.make_archive(driver_name, ZIP_FILE_EXTENSION, os.path.join(os.getcwd(), outdir))                        # Make the zip file, have to use zip as an extension
     shutil.rmtree(outdir)                                                                                          # Remove the folder for the resized image files
