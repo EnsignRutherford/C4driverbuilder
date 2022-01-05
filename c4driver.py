@@ -64,12 +64,12 @@ LOGGING = logging.getLogger()
 
 
 def make_image_files(infile: str, outfileprefix: str) -> None:
-    im = Image.open(infile) #maybe check for valid filename
+    im = Image.open(infile) # maybe check for valid filename
     LOGGING.info("Using image file: " + infile + " - image format is: " + im.format + ", size is:" + str(im.size))
-    sizelist=[16, 32, 70, 90, 300, 512, 1024] #sizes in pixels of image files to be created
+    sizelist=[16, 32, 70, 90, 300, 512, 1024] # sizes in pixels of image files to be created
     for sz in sizelist:
         size = (sz, sz)
-        outfile = outfileprefix + "_" + str(sz) + ".png"  #outfileprefix will be default or selected
+        outfile = outfileprefix + "_" + str(sz) + ".png"  # outfileprefix will be default or selected
         LOGGING.info("Creating: " + outfile)
         if infile != outfile:
                 try:
@@ -80,32 +80,32 @@ def make_image_files(infile: str, outfileprefix: str) -> None:
                     LOGGING.error("cannot create resized image for" + infile)
   
 
-def parse_xml_file(file_name: str, drivername: str, driverlabel: str) -> None: #probably can cut this down to one line and not bother with a function
+def parse_xml_file(file_name: str, drivername: str, driverlabel: str, update_driver: bool) -> None: #probably can cut this down to one line and not bother with a function
     now = datetime.now()
     current_time = now.strftime("%m/%d/%Y %H:%M")
 
-    xml1 = "<created>.*</created>"  #This is to change the created date with current date/time see https://stackoverflow.com/questions/16159969/replace-all-text-between-2-strings-python
-    xml2 = "<modified>.*</modified>" #This is to change the modified date with current date/time
+    xml1 = "<created>.*</created>"   # This is to change the created date with current date/time see https://stackoverflow.com/questions/16159969/replace-all-text-between-2-strings-python
+    xml2 = "<modified>.*</modified>" # This is to change the modified date with current date/time
+    xml3 = "<version>.*</version>"   # This is to change the version of the driver for ease of updating within a Control4 project
     c = "<created>" + current_time + "</created>"
     m = "<modified>" + current_time + "</modified>"
     stext = "experience-button-scenario" #driver name used for files
     stext2 = "Scenario - Experience Button" # driver name that is hard coded - may need to change to make it more flexible
     stext3 = 'name="Scenario"'
-    stext4 = "<version>.*</version>"
-    rtext=drivername
+    rtext = drivername
+    rtext2 = driverlabel.title() + " - Experience Button"
     data = open(file_name, 'rt', encoding='utf8', errors='ignore').read()
     data = data.encode().decode("ascii", "ignore")
-    data = data.replace(stext, rtext) #replaces the names of all of the icon files
-    data = data.replace(stext2, rtext) #replaces the name of the driver
-    data = data.replace(stext3, 'name="' + driverlabel + '"') #replaces the name of the driver
-    data=re.sub(xml1, c, data, flags = re.DOTALL) #replaces the created date
-    data=re.sub(xml2, m, data, flags = re.DOTALL) #replaces the modified date
-    # update the version
-    version_info = re.search(stext4, data).group(0)
+    data = data.replace(stext, rtext)                                 # replaces the names of all of the icon files
+    data = data.replace(stext2, rtext2)                               # replaces the name of the driver
+    data = data.replace(stext3, 'name="' + driverlabel.title() + '"') # replaces the name of the driver so it's default description in system explorer will be the name of the driver
+    data=re.sub(xml1, c, data, flags = re.DOTALL)                     # replaces the created date
+    data=re.sub(xml2, m, data, flags = re.DOTALL)                     # replaces the modified date
+    version_info = re.search(xml3, data).group(0)                     # update the version
     new_version_info = '<version>' + str(int(version_info.replace('<version>',"").replace('</version>',"")) + 1) + '</version>'
     data = data.replace(version_info, new_version_info)
-    fin = open(file_name, "wt") #open xml file to write
-    fin.write(data) #write updated xml file
+    fin = open(file_name, "wt") # open xml file to write
+    fin.write(data)             # write updated xml file
     fin.close()
 
 
@@ -115,13 +115,13 @@ def main() -> None:
         sys.exit("Terminating as no filename provided for image file please provide an image name as an argument.")
 
     # Define constants
-    orig_driver_name = "experience-button-scenario.c4z" #This file must exist in the base folder
-    outdir = "tempdir" #Temporary folder to hold unzipped original C4Z file and image files.
-    image_path = "temp_image" #Temporary folder to hold all of the icon files
-    drivername = sys.argv[1] #The icon file name passed in the command line
+    orig_driver_name = "experience-button-scenario.c4z" # This file must exist in the base folder
+    outdir = "tempdir"                                  # Temporary folder to hold unzipped original C4Z file and image files.
+    image_path = "temp_image"                           # Temporary folder to hold all of the icon files
+    drivername = sys.argv[1]                            # The icon file name passed in the command line
     driverlabel = drivername
-    orig_image_file = drivername + ".png" #This is the original image file which must be provided and it must be "drivername".png
-    base_selected_file = drivername + "_selected.png" #This is the provided selected file that will be used, it is optional
+    orig_image_file = drivername + ".png"               # This is the original image file which must be provided and it must be "drivername".png
+    base_selected_file = drivername + "_selected.png"   # This is the provided selected file that will be used, it is optional
     final_c4z_image_path = "uibutton_" + drivername
     drivername = final_c4z_image_path
     final_c4z_image_file_name = final_c4z_image_path + ".c4z"
@@ -134,26 +134,31 @@ def main() -> None:
 
     if (os.path.exists(final_c4z_file)):
         orig_driver_name = final_c4z_file
+        print("Updating existing driver file " + final_c4z_file + ".")
+        update_driver = True
     else:
         wget.download("http://drivers.control4.com/experience-button-scenario.c4z", bar=None, out=orig_driver_name)    
         if not(os.path.exists(orig_driver_name)):
             sys.exit("Terminating as there is no file called experience-button-scenario.c4z in current directory.")
+        print("Creating driver " + final_c4z_file + ".")            
+        update_driver = False
 
-    if not(os.path.exists(base_selected_file)): #Look to see if there is a selected file
-        base_selected_file=orig_image_file #If there isn't then just use the default file
+    if not(os.path.exists(base_selected_file)):              # Look to see if there is a selected file
+        base_selected_file=orig_image_file                   # If there isn't then just use the default file
         LOGGING.info("No selected image file so using the same image file for both default and selected")
-    xml_file_name = os.path.join(outdir, "driver.xml") #This is the driver file with xml code - it will be slightly altered
-    Path(image_path).mkdir(parents = True, exist_ok = True) #Create the temporaty folder for the icon files
-    defaultimagepath = os.path.join(image_path, "default") #path name for selected icon images
-    selectedimagepath = os.path.join(image_path, "selected") #path name for default icon images
+    xml_file_name = os.path.join(outdir, "driver.xml")       # This is the driver file with xml code - it will be slightly altered
+    Path(image_path).mkdir(parents = True, exist_ok = True)  # Create the temporaty folder for the icon files
+    defaultimagepath = os.path.join(image_path, "default")   # path name for selected icon images
+    selectedimagepath = os.path.join(image_path, "selected") # path name for default icon images
 
-    make_image_files(orig_image_file,defaultimagepath)  #Make all of the default files
-    make_image_files(base_selected_file,selectedimagepath)  #Make all of the selected files
+    make_image_files(orig_image_file,defaultimagepath)       # Make all of the default files
+    make_image_files(base_selected_file,selectedimagepath)   # Make all of the selected files
 
     zipfile.ZipFile(orig_driver_name).extractall(path = outdir)  #extracts driver file to the path given
-    parse_xml_file(xml_file_name, drivername, driverlabel) #parses xml to change icon names for buttons and xml parameters - name, created and modified
+    parse_xml_file(xml_file_name, drivername, driverlabel, update_driver) #parses xml to change icon names for buttons and xml parameters - name, created and modified
     oldiconpath=os.path.join(outdir, "www", "icons-old")
-    shutil.rmtree(oldiconpath) #remove icons-old folder - no one knows why this folder exists - lazy coder?
+    if (os.path.exists(oldiconpath)):
+        shutil.rmtree(oldiconpath) #remove icons-old folder - no one knows why this folder exists - lazy coder?
     shutil.move(os.path.join(image_path, "default_16.png"), os.path.join(outdir, "www", "icons", "device_sm.png")) #move the device small icon to the driver file
     shutil.move(os.path.join(image_path, "default_32.png"), os.path.join(outdir, "www", "icons", "device_lg.png")) #move the device large icon to the driver file
     os.remove(os.path.join(image_path, "selected_16.png")) #These files weren't needed but it was easier to create them in a loop and then delete
@@ -166,7 +171,8 @@ def main() -> None:
     shutil.make_archive(drivername, "zip", os.path.join(os.getcwd(), outdir))  #Make the zip file, have to use zip as an extension
     shutil.rmtree(outdir) #remove the folder for the resized image files
     shutil.move(drivername + ".zip", final_c4z_image_file_name) #Change extension to c4z
-    os.remove(orig_driver_name)
+    if (update_driver == False):
+        os.remove(orig_driver_name)
     LOGGING.info(final_c4z_image_file_name + " driver file created.")
 
 
