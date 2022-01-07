@@ -11,22 +11,22 @@ will be prompted to install them.
 
 You need at least one png image file that will be used for the new icon. If desired, you can also provide a second
 image file that is the selected version of this button. Let's assume the default icon image file is called stones.png. 
-Then you could also have an image file for the selected button which must be named stones_selected.png and it must be 
+Then you could also have an image file for the selected button which must be named stones_selected.png, and it must be
 in the same folder.
 
-The main image file must be a png file and ideally it should be square and 1024x1024 or larger.
+The main image file must be a png file, and ideally it should be square and 1024x1024 or larger.
 
 Place the image file(s) in a folder along with this file.  If needed for first-time creation the script will download
 the experience-button-scenario.c4z file.
 
 Run the program with: "python3 c4driver.py stones" assuming that the image file is stones.png.
-The program should just take a few seconds to run.  You should end up with an additonal file in that folder
+The program should just take a few seconds to run.  You should end up with an additional file in that folder
 called uibutton_stones.c4z.  This is a control4 driver file.  Have your dealer install this in the room and give it 
 the name you want to be displayed in the Navigator. This script will create a log file with info in this 
 example uibutton_stones.log
 
-For more info on how to alter a driver to use your own custom icons see the following Youtube
-video: https://www.youtube.com/watch?v=wW-eOh3sWFM&t=95s
+For more info on how to alter a driver to use your own custom icons see the YouTube video:
+https://www.youtube.com/watch?v=wW-eOh3sWFM&t=95s
 
 Recommendations: - Your icon will look best if you do some preparation. Try to find a file with a transparent 
 background. Use image editing software (I use paint.net which is free) to make this file square. If your image
@@ -49,6 +49,7 @@ import sys
 try:
     import wget
 except ImportError:
+    wget = None
     print("wget Library not installed.\nType 'python3 -m pip install wget' at the command prompt and try again.")
     quit()
 import zipfile
@@ -57,6 +58,7 @@ from datetime import datetime
 try:
     from lxml import etree
 except ImportError:
+    etree = None
     print("lxml Library not installed.\nType 'python3 -m pip install lxml' at the command prompt and try again.")
     quit()
 from pathlib import Path
@@ -140,7 +142,7 @@ def main() -> None:
     image_path = "temp_image"  # Temporary folder to hold the icon files
     driver_name = sys.argv[1]  # The icon file name passed in the command line
     driver_label = driver_name
-    orig_image_file = driver_name + "." + IMAGE_FILE_EXTENSION  # This is the original image file which must be provided and it must be "driver_name".png
+    orig_image_file = driver_name + "." + IMAGE_FILE_EXTENSION  # This is the original image file
     base_selected_file = driver_name + "_selected." + IMAGE_FILE_EXTENSION  # This is the provided selected file that will be used, it is optional
     final_c4z_image_path = "uibutton_" + driver_name
     driver_name = final_c4z_image_path
@@ -170,25 +172,25 @@ def main() -> None:
         base_selected_file = orig_image_file  # If there isn't then just use the default file
         LOGGING.info("No selected image file so using the same image file for both default and selected")
     # This is the driver file with xml code - it will be slightly altered
-    xml_file_name = os.path.join(out_dir, DRIVER_XML_FILE)  
+    xml_file_name = os.path.join(out_dir, DRIVER_XML_FILE)
     Path(image_path).mkdir(parents=True, exist_ok=True)  # Create the temporary folder for the icon files
     default_image_path = os.path.join(image_path, "default")  # Path name for selected icon images
     selected_image_path = os.path.join(image_path, "selected")  # Path name for default icon images
-    make_image_files(orig_image_file, default_image_path)  # Make all of the default files
-    make_image_files(base_selected_file, selected_image_path)  # Make all of the selected files
+    make_image_files(orig_image_file, default_image_path)  # Make all the default files
+    make_image_files(base_selected_file, selected_image_path)  # Make all the selected files
     zipfile.ZipFile(orig_driver_name).extractall(path=out_dir)  # Extracts driver file to the path given
     # Processes xml to change icon names for buttons and xml parameters - name, created and modified
-    process_xml_file(xml_file_name, driver_name, driver_label, update_driver)  
+    process_xml_file(xml_file_name, driver_name, driver_label, update_driver)
     old_icon_path = os.path.join(out_dir, "www", "icons-old")
     if os.path.exists(old_icon_path):
         shutil.rmtree(old_icon_path)  # Remove icons-old folder if it exists - no one knows why this folder exists - lazy coder?
     # Move the device small and large icons to the driver file
     shutil.move(os.path.join(image_path, "default_16.png"), os.path.join(out_dir, "www", "icons", "device_sm.png"))
     shutil.move(os.path.join(image_path, "default_32.png"), os.path.join(out_dir, "www", "icons", "device_lg.png"))
-    # These files weren't needed but it was easier to create them in a loop and then delete
+    # These files weren't needed; it was easier to create them in a loop and then delete
     os.remove(os.path.join(image_path, "selected_16.png"))
     os.remove(os.path.join(image_path, "selected_32.png"))
-    # Copy all of the icon files to the proper folder
+    # Copy all the icon files to the proper folder
     for file in Path(image_path).glob("*." + IMAGE_FILE_EXTENSION):
         shutil.copy(file, os.path.join(out_dir, "www", "icons", "device"))
     shutil.rmtree(image_path)  # Remove the temporary folder for the resized image files
